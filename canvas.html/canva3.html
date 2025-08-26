@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS to Image Encoder/Decoder</title>
+</head>
+<body>
+    <h1>JS to Image Encoder/Decoder</h1>
+    <textarea id="jsCodeInput" placeholder="Enter your JavaScript code here..." rows="10" cols="50">alert(1);</textarea><br>
+    <button id="encodeButton">Encode to Image</button>
+    <br><br>
+    <img id="encodedImage" style="display:none;" alt="Encoded Image"/>
+    <script>
+        // Function to encode JavaScript code into an image
+        function encodeJStoImage(jsCode) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const binaryString = jsCode.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join('');
+            const width = Math.ceil(Math.sqrt(binaryString.length));
+            canvas.width = width;
+            canvas.height = width;
+
+            let index = 0;
+            for (let y = 0; y < width; y++) {
+                for (let x = 0; x < width; x++) {
+                    const bit = binaryString[index] || '0';
+                    const color = bit === '1' ? 255 : 0; // White for 1, Black for 0
+                    ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+                    ctx.fillRect(x, y, 1, 1);
+                    index++;
+                }
+            }
+
+            return canvas.toDataURL('image/png');
+        }
+
+        // Function to decode the image back into JavaScript code and execute it
+        function decodeImageToJS(imageDataURL) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = imageDataURL;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    let binaryString = '';
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                    for (let i = 0; i < imageData.length; i += 4) {
+                        const color = imageData[i]; // Red channel
+                        binaryString += color === 255 ? '1' : '0';
+                    }
+
+                    let jsCode = '';
+                    for (let i = 0; i < binaryString.length; i += 8) {
+                        const byte = binaryString.slice(i, i + 8);
+                        if (byte.length === 8) {
+                            jsCode += String.fromCharCode(parseInt(byte, 2));
+                        }
+                    }
+
+                    resolve(jsCode);
+                };
+                img.onerror = reject;
+            });
+        }
+
+        // Event listener for the encode button
+        document.getElementById('encodeButton').addEventListener('click', () => {
+            const jsCode = document.getElementById('jsCodeInput').value;
+            if (jsCode.trim() === '') {
+                alert('Please enter JavaScript code to encode.');
+                return;
+            }
+            const imageDataURL = encodeJStoImage(jsCode);
+            const imgElement = document.getElementById('encodedImage');
+            imgElement.src = imageDataURL;
+            imgElement.style.display = 'block';
+            console.log('Encoded Image Data URL:', imageDataURL);
+
+            // Add event listener to the image for decoding and executing on click
+            imgElement.addEventListener('click', async () => {
+                try {
+                    const decodedJSCode = await decodeImageToJS(imgElement.src);
+                    console.log('Decoded JS Code:', decodedJSCode);
+
+                    // Check if the decoded JS code is valid
+                    if (decodedJSCode.trim() === '') {
+                        console.error('Decoded JS code is empty.');
+                        return;
+                    }
+
+                    // Execute the decoded JS code
+                    try {
+                        eval(decodedJSCode);
+                        console.log('JS code executed successfully.');
+                    } catch (evalError) {
+                        console.error('Error executing JS code:', evalError);
+                    }
+                } catch (error) {
+                    console.error('Error decoding image:', error);
+                }
+            }, { once: true }); // Ensure the event listener is only added once
+        });
+    </script>
+</body>
+</html>

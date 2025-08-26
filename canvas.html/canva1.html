@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS to Image Encoder/Decoder</title>
+</head>
+<body>
+    <h1>JS to Image Encoder/Decoder</h1>
+    <textarea id="jsCodeInput" placeholder="Enter your JavaScript code here..." rows="10" cols="50"></textarea><br>
+    <button id="encodeButton">Encode to Image</button>
+    <button id="decodeButton">Decode and Execute</button>
+    <br><br>
+    <img id="encodedImage" style="display:none;"/>
+    <script>
+        // Function to encode JavaScript code into an image
+        function encodeJStoImage(jsCode) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const binaryString = jsCode.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join('');
+            const width = Math.ceil(Math.sqrt(binaryString.length));
+            canvas.width = width;
+            canvas.height = width;
+
+            let index = 0;
+            for (let y = 0; y < width; y++) {
+                for (let x = 0; x < width; x++) {
+                    const bit = binaryString[index] || '0';
+                    const color = bit === '1' ? 255 : 0; // White for 1, Black for 0
+                    ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+                    ctx.fillRect(x, y, 1, 1);
+                    index++;
+                }
+            }
+
+            return canvas.toDataURL('image/png');
+        }
+
+        // Function to decode the image back into JavaScript code and execute it
+        function decodeImageToJS(imageDataURL) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = imageDataURL;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    let binaryString = '';
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                    for (let i = 0; i < imageData.length; i += 4) {
+                        const color = imageData[i]; // Red channel
+                        binaryString += color === 255 ? '1' : '0';
+                    }
+
+                    let jsCode = '';
+                    for (let i = 0; i < binaryString.length; i += 8) {
+                        const byte = binaryString.slice(i, i + 8);
+                        if (byte.length === 8) {
+                            jsCode += String.fromCharCode(parseInt(byte, 2));
+                        }
+                    }
+
+                    resolve(jsCode);
+                };
+                img.onerror = reject;
+            });
+        }
+
+        // Event listeners for buttons
+        document.getElementById('encodeButton').addEventListener('click', () => {
+            const jsCode = document.getElementById('jsCodeInput').value;
+            const imageDataURL = encodeJStoImage(jsCode);
+            const imgElement = document.getElementById('encodedImage');
+            imgElement.src = imageDataURL;
+            imgElement.style.display = 'block';
+            console.log('Encoded Image Data URL:', imageDataURL);
+        });
+
+        document.getElementById('decodeButton').addEventListener('click', async () => {
+            const imgElement = document.getElementById('encodedImage');
+            if (imgElement.src) {
+                const decodedJSCode = await decodeImageToJS(imgElement.src);
+                console.log('Decoded JS Code:', decodedJSCode);
+                eval(decodedJSCode); // Execute the decoded JS code
+            } else {
+                alert('No image to decode. Please encode JavaScript code first.');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Code to Image</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+        }
+        canvas {
+            border: 1px solid #000;
+            margin-top: 20px;
+        }
+        #downloadLink {
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Convert JS Code to Image</h1>
+    <textarea id="jsCode" placeholder="Enter your JavaScript code here..."></textarea><br>
+    <button id="convertButton">Convert to Image</button><br>
+    <canvas id="codeCanvas"></canvas><br>
+    <a id="downloadLink" download="codeImage.png" style="display:none;">Download Image</a>
+
+    <script>
+        document.getElementById('convertButton').addEventListener('click', convertCodeToImage);
+
+        function convertCodeToImage() {
+            const jsCode = document.getElementById('jsCode').value;
+            const canvas = document.getElementById('codeCanvas');
+            const ctx = canvas.getContext('2d');
+            const downloadLink = document.getElementById('downloadLink');
+
+            // Set canvas size based on the length of the code
+            const codeLength = jsCode.length;
+            const width = Math.ceil(Math.sqrt(codeLength));
+            canvas.width = width;
+            canvas.height = width;
+
+            // Map characters to colors
+            for (let i = 0; i < codeLength; i++) {
+                const char = jsCode.charCodeAt(i);
+                const x = i % width;
+                const y = Math.floor(i / width);
+                const color = `rgb(${char % 256}, ${(char * 2) % 256}, ${(char * 3) % 256})`;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 1, 1);
+            }
+
+            // Show download link
+            downloadLink.href = canvas.toDataURL('image/png');
+            downloadLink.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
